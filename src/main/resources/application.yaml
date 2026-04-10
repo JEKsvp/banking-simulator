@@ -1,3 +1,7 @@
 spring:
   application:
     name: banking-simulator
+  main:
+    keep-alive: true
+  flyway:
+    enabled: true
