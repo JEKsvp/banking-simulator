@@ -10,5 +10,5 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends CrudRepository<Transaction, UUID> {
 
-    List<Transaction> findBySourceAccountIdOrTargetAccountId(UUID sourceAccountId, UUID targetAccountId);
+    List<Transaction> findByBillAccountIdOrCounterpartAccountId(UUID billAccountId, UUID counterpartAccountId);
 }

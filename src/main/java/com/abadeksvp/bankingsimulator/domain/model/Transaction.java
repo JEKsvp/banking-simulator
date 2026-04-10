@@ -28,13 +28,19 @@ public class Transaction implements Persistable<UUID> {
     @Column("type")
     private TransactionType type;
 
-    @Column("source_account_id")
-    private UUID sourceAccountId;
+    @Column("status")
+    private TransactionStatus status;
 
-    @Column("target_account_id")
-    private UUID targetAccountId;
+    @Column("bill_account_id")
+    private UUID billAccountId;
 
-    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL)
+    @Column("counterpart_account_id")
+    private UUID counterpartAccountId;
+
+    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL, prefix = "billing_")
+    private Money billingAmount;
+
+    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL, prefix = "transaction_")
     private Money transactionAmount;
 
     @Column("description")
@@ -43,14 +49,28 @@ public class Transaction implements Persistable<UUID> {
     @Column("created_at")
     private Instant createdAt;
 
+    @Column("updated_at")
+    private Instant updatedAt;
+
     @Transient
     @Builder.Default
     private boolean isNew = true;
 
     @PersistenceCreator
-    public Transaction(UUID id, TransactionType type, UUID sourceAccountId, UUID targetAccountId,
-                       Money transactionAmount, String description, Instant createdAt) {
-        this(id, type, sourceAccountId, targetAccountId, transactionAmount, description, createdAt, false);
+    public Transaction(UUID id, TransactionType type, TransactionStatus status,
+                       UUID billAccountId, UUID counterpartAccountId,
+                       Money billingAmount, Money transactionAmount, String description,
+                       Instant createdAt, Instant updatedAt) {
+        this(id, type, status, billAccountId, counterpartAccountId,
+                billingAmount, transactionAmount, description, createdAt, updatedAt, false);
+    }
+
+    public void transition(TransactionStatus newStatus) {
+        if (!status.canTransitionTo(newStatus)) {
+            throw new IllegalStateException(
+                    "Cannot transition from %s to %s".formatted(status, newStatus));
+        }
+        this.status = newStatus;
     }
 
     @Override

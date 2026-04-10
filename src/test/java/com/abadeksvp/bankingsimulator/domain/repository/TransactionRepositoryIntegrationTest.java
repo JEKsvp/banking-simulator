@@ -6,6 +6,7 @@ import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
 import com.abadeksvp.bankingsimulator.domain.model.Money;
 import com.abadeksvp.bankingsimulator.domain.model.Transaction;
+import com.abadeksvp.bankingsimulator.domain.model.TransactionStatus;
 import com.abadeksvp.bankingsimulator.domain.model.TransactionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,16 +27,16 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private AccountRepository accountRepository;
 
-    private Account sourceAccount;
-    private Account targetAccount;
+    private Account billAccount;
+    private Account counterpartAccount;
 
     @BeforeEach
     void setUp() {
         Instant now = clock.now();
 
-        sourceAccount = Account.builder()
+        billAccount = Account.builder()
                 .id(UUID.randomUUID())
-                .accountNumber("SRC-001")
+                .accountNumber("BILL-001")
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
                 .balance(new Money(new BigDecimal("1000.00"), Currency.USD))
@@ -43,9 +44,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
                 .updatedAt(now)
                 .build();
 
-        targetAccount = Account.builder()
+        counterpartAccount = Account.builder()
                 .id(UUID.randomUUID())
-                .accountNumber("TGT-001")
+                .accountNumber("CNTP-001")
                 .userId(UUID.randomUUID())
                 .type(AccountType.COMPANY)
                 .balance(new Money(new BigDecimal("5000.00"), Currency.USD))
@@ -53,8 +54,8 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
                 .updatedAt(now)
                 .build();
 
-        accountRepository.save(sourceAccount);
-        accountRepository.save(targetAccount);
+        accountRepository.save(billAccount);
+        accountRepository.save(counterpartAccount);
     }
 
     @Test
@@ -64,11 +65,14 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
         Transaction transaction = Transaction.builder()
                 .id(UUID.randomUUID())
                 .type(TransactionType.TRANSFER)
-                .sourceAccountId(sourceAccount.getId())
-                .targetAccountId(targetAccount.getId())
+                .status(TransactionStatus.CREATED)
+                .billAccountId(billAccount.getId())
+                .counterpartAccountId(counterpartAccount.getId())
+                .billingAmount(new Money(new BigDecimal("100.00"), Currency.USD))
                 .transactionAmount(new Money(new BigDecimal("100.00"), Currency.USD))
                 .description("Test transfer")
                 .createdAt(now)
+                .updatedAt(now)
                 .build();
 
         transactionRepository.save(transaction);
@@ -85,26 +89,32 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
         Transaction t1 = Transaction.builder()
                 .id(UUID.randomUUID())
                 .type(TransactionType.TRANSFER)
-                .sourceAccountId(sourceAccount.getId())
-                .targetAccountId(targetAccount.getId())
+                .status(TransactionStatus.CREATED)
+                .billAccountId(billAccount.getId())
+                .counterpartAccountId(counterpartAccount.getId())
+                .billingAmount(new Money(new BigDecimal("50.00"), Currency.USD))
                 .transactionAmount(new Money(new BigDecimal("50.00"), Currency.USD))
                 .createdAt(now)
+                .updatedAt(now)
                 .build();
 
         Transaction t2 = Transaction.builder()
                 .id(UUID.randomUUID())
                 .type(TransactionType.DEPOSIT)
-                .sourceAccountId(targetAccount.getId())
-                .targetAccountId(sourceAccount.getId())
+                .status(TransactionStatus.CREATED)
+                .billAccountId(counterpartAccount.getId())
+                .counterpartAccountId(billAccount.getId())
+                .billingAmount(new Money(new BigDecimal("200.00"), Currency.USD))
                 .transactionAmount(new Money(new BigDecimal("200.00"), Currency.USD))
                 .createdAt(now)
+                .updatedAt(now)
                 .build();
 
         transactionRepository.save(t1);
         transactionRepository.save(t2);
 
-        List<Transaction> found = transactionRepository.findBySourceAccountIdOrTargetAccountId(
-                sourceAccount.getId(), sourceAccount.getId()
+        List<Transaction> found = transactionRepository.findByBillAccountIdOrCounterpartAccountId(
+                billAccount.getId(), billAccount.getId()
         );
         assertThat(found).hasSize(2);
     }
