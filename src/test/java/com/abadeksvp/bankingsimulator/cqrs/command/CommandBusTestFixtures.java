@@ -9,16 +9,16 @@ final class CommandBusTestFixtures {
     private CommandBusTestFixtures() {
     }
 
-    record TestCommand(String input) implements Command {
+    record TestCommand(String input) implements Command<Void> {
     }
 
-    record AnotherCommand(int value) implements Command {
+    record AnotherCommand(int value) implements Command<Void> {
     }
 
-    record FailingCommand(String input) implements Command {
+    record FailingCommand(String input) implements Command<Void> {
     }
 
-    record UnregisteredCommand() implements Command {
+    record UnregisteredCommand() implements Command<Void> {
     }
 
     enum TestErrorCode implements ErrorCode {
@@ -30,7 +30,7 @@ final class CommandBusTestFixtures {
         }
     }
 
-    static class TestCommandHandler extends AbstractCommandHandler<TestCommand> {
+    static class TestCommandHandler extends AbstractCommandHandler<TestCommand, Void> {
         TestCommandHandler() {
             super(TestCommand.class);
         }
@@ -41,7 +41,7 @@ final class CommandBusTestFixtures {
         }
     }
 
-    static class AnotherCommandHandler extends AbstractCommandHandler<AnotherCommand> {
+    static class AnotherCommandHandler extends AbstractCommandHandler<AnotherCommand, Void> {
         AnotherCommandHandler() {
             super(AnotherCommand.class);
         }
@@ -52,7 +52,7 @@ final class CommandBusTestFixtures {
         }
     }
 
-    static class FailingCommandHandler extends AbstractCommandHandler<FailingCommand> {
+    static class FailingCommandHandler extends AbstractCommandHandler<FailingCommand, Void> {
         FailingCommandHandler() {
             super(FailingCommand.class);
         }

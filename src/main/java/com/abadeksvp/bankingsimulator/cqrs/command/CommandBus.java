@@ -13,14 +13,14 @@ import java.util.concurrent.TimeUnit;
 
 public class CommandBus {
 
-    private final Map<Class<?>, CommandHandler<?>> handlers;
+    private final Map<Class<?>, CommandHandler<?, ?>> handlers;
     private final CommandBusConfig config;
     private volatile ExecutorService executor;
 
-    public CommandBus(List<CommandHandler<?>> handlerList, CommandBusConfig config) {
+    public CommandBus(List<CommandHandler<?, ?>> handlerList, CommandBusConfig config) {
         this.config = config;
         this.handlers = new HashMap<>();
-        for (CommandHandler<?> handler : handlerList) {
+        for (CommandHandler<?, ?> handler : handlerList) {
             Class<?> commandType = handler.getCommandType();
             if (handlers.containsKey(commandType)) {
                 throw new CqrsConfigurationException(
@@ -54,11 +54,11 @@ public class CommandBus {
     }
 
     @SuppressWarnings("unchecked")
-    public <C extends Command> CompletableFuture<Result<Void>> dispatch(C command) {
+    public <R, C extends Command<R>> CompletableFuture<Result<R>> dispatch(C command) {
         if (executor == null || executor.isShutdown()) {
             throw new IllegalStateException("CommandBus is not running. Call start() first.");
         }
-        CommandHandler<C> handler = (CommandHandler<C>) handlers.get(command.getClass());
+        CommandHandler<C, R> handler = (CommandHandler<C, R>) handlers.get(command.getClass());
         if (handler == null) {
             throw new CommandHandlerNotFoundException(command.getClass());
         }

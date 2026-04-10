@@ -43,14 +43,17 @@ public class Account implements Persistable<UUID> {
     @Column("updated_at")
     private Instant updatedAt;
 
+    @Column("overdraft_enabled")
+    private boolean overdraftEnabled;
+
     @Transient
     @Builder.Default
     private boolean isNew = true;
 
     @PersistenceCreator
     public Account(UUID id, String accountNumber, UUID userId, AccountType type,
-                   Money balance, Instant createdAt, Instant updatedAt) {
-        this(id, accountNumber, userId, type, balance, createdAt, updatedAt, false);
+                   Money balance, Instant createdAt, Instant updatedAt, boolean overdraftEnabled) {
+        this(id, accountNumber, userId, type, balance, createdAt, updatedAt, overdraftEnabled, false);
     }
 
     @Override

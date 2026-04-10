@@ -25,7 +25,7 @@ public class CqrsConfiguration {
     }
 
     @Bean(initMethod = "start", destroyMethod = "stop")
-    public CommandBus commandBus(List<CommandHandler<?>> handlers, CommandBusConfig commandBusConfig) {
+    public CommandBus commandBus(List<CommandHandler<?, ?>> handlers, CommandBusConfig commandBusConfig) {
         return new CommandBus(handlers, commandBusConfig);
     }
 

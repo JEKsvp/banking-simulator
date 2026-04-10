@@ -1,6 +1,6 @@
 package com.abadeksvp.bankingsimulator.cqrs.command;
 
-public abstract class AbstractCommandHandler<C extends Command> implements CommandHandler<C> {
+public abstract class AbstractCommandHandler<C extends Command<R>, R> implements CommandHandler<C, R> {
 
     private final Class<C> commandType;
 

@@ -1,4 +1,4 @@
 package com.abadeksvp.bankingsimulator.cqrs.command;
 
-public interface Command {
+public interface Command<R> {
 }
