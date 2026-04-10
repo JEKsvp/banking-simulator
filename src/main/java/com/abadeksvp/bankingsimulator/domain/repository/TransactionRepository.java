@@ -1,0 +1,14 @@
+package com.abadeksvp.bankingsimulator.domain.repository;
+
+import com.abadeksvp.bankingsimulator.domain.model.Transaction;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Repository
+public interface TransactionRepository extends CrudRepository<Transaction, UUID> {
+
+    List<Transaction> findBySourceAccountIdOrTargetAccountId(UUID sourceAccountId, UUID targetAccountId);
+}
