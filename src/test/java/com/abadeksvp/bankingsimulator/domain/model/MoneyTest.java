@@ -2,8 +2,6 @@ package com.abadeksvp.bankingsimulator.domain.model;
 
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -11,24 +9,24 @@ class MoneyTest {
 
     @Test
     void shouldAddMoneyWithSameCurrency() {
-        Money a = new Money(new BigDecimal("10.00"), Currency.USD);
-        Money b = new Money(new BigDecimal("5.50"), Currency.USD);
+        Money a = new Money(1000, Currency.USD);
+        Money b = new Money(550, Currency.USD);
 
-        assertThat(a.add(b)).isEqualTo(new Money(new BigDecimal("15.50"), Currency.USD));
+        assertThat(a.add(b)).isEqualTo(new Money(1550, Currency.USD));
     }
 
     @Test
     void shouldSubtractMoneyWithSameCurrency() {
-        Money a = new Money(new BigDecimal("10.00"), Currency.USD);
-        Money b = new Money(new BigDecimal("3.50"), Currency.USD);
+        Money a = new Money(1000, Currency.USD);
+        Money b = new Money(350, Currency.USD);
 
-        assertThat(a.subtract(b)).isEqualTo(new Money(new BigDecimal("6.50"), Currency.USD));
+        assertThat(a.subtract(b)).isEqualTo(new Money(650, Currency.USD));
     }
 
     @Test
     void shouldThrowOnAddWithDifferentCurrencies() {
-        Money usd = new Money(new BigDecimal("10.00"), Currency.USD);
-        Money eur = new Money(new BigDecimal("5.00"), Currency.EUR);
+        Money usd = new Money(1000, Currency.USD);
+        Money eur = new Money(500, Currency.EUR);
 
         assertThatThrownBy(() -> usd.add(eur))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -37,8 +35,8 @@ class MoneyTest {
 
     @Test
     void shouldThrowOnSubtractWithDifferentCurrencies() {
-        Money usd = new Money(new BigDecimal("10.00"), Currency.USD);
-        Money eur = new Money(new BigDecimal("5.00"), Currency.EUR);
+        Money usd = new Money(1000, Currency.USD);
+        Money eur = new Money(500, Currency.EUR);
 
         assertThatThrownBy(() -> usd.subtract(eur))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -46,30 +44,15 @@ class MoneyTest {
     }
 
     @Test
-    void shouldThrowOnNullAmount() {
-        assertThatThrownBy(() -> new Money(null, Currency.USD))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Amount must not be null");
-    }
-
-    @Test
     void shouldThrowOnNullCurrency() {
-        assertThatThrownBy(() -> new Money(new BigDecimal("10.00"), null))
+        assertThatThrownBy(() -> new Money(1000, null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Currency code must not be null");
-    }
-
-    @Test
-    void shouldBeEqualRegardlessOfScale() {
-        Money a = new Money(new BigDecimal("10.0"), Currency.USD);
-        Money b = new Money(new BigDecimal("10.00"), Currency.USD);
-
-        assertThat(a).isEqualTo(b);
+                .hasMessageContaining("Currency must not be null");
     }
 
     @Test
     void shouldBePositive() {
-        Money money = new Money(new BigDecimal("10.00"), Currency.USD);
+        Money money = new Money(1000, Currency.USD);
 
         assertThat(money.isPositive()).isTrue();
         assertThat(money.isNegative()).isFalse();
@@ -78,7 +61,7 @@ class MoneyTest {
 
     @Test
     void shouldBeNegative() {
-        Money money = new Money(new BigDecimal("-5.00"), Currency.USD);
+        Money money = new Money(-500, Currency.USD);
 
         assertThat(money.isPositive()).isFalse();
         assertThat(money.isNegative()).isTrue();
@@ -87,7 +70,7 @@ class MoneyTest {
 
     @Test
     void shouldBeZero() {
-        Money money = new Money(BigDecimal.ZERO, Currency.USD);
+        Money money = new Money(0, Currency.USD);
 
         assertThat(money.isPositive()).isFalse();
         assertThat(money.isNegative()).isFalse();

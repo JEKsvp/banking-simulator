@@ -32,8 +32,6 @@ class TransactionStatusTest {
 
     static Stream<Arguments> allowedTransitions() {
         return Stream.of(
-                Arguments.of(TransactionStatus.CREATED, TransactionStatus.PENDING),
-                Arguments.of(TransactionStatus.CREATED, TransactionStatus.DECLINED),
                 Arguments.of(TransactionStatus.PENDING, TransactionStatus.COMPLETED),
                 Arguments.of(TransactionStatus.PENDING, TransactionStatus.DECLINED)
         );
@@ -41,12 +39,8 @@ class TransactionStatusTest {
 
     static Stream<Arguments> disallowedTransitions() {
         return Stream.of(
-                Arguments.of(TransactionStatus.CREATED, TransactionStatus.COMPLETED),
-                Arguments.of(TransactionStatus.PENDING, TransactionStatus.CREATED),
-                Arguments.of(TransactionStatus.COMPLETED, TransactionStatus.CREATED),
                 Arguments.of(TransactionStatus.COMPLETED, TransactionStatus.PENDING),
                 Arguments.of(TransactionStatus.COMPLETED, TransactionStatus.DECLINED),
-                Arguments.of(TransactionStatus.DECLINED, TransactionStatus.CREATED),
                 Arguments.of(TransactionStatus.DECLINED, TransactionStatus.PENDING),
                 Arguments.of(TransactionStatus.DECLINED, TransactionStatus.COMPLETED)
         );

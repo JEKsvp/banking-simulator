@@ -12,12 +12,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.dao.DuplicateKeyException;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
@@ -39,7 +41,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
                 .accountNumber("BILL-001")
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
-                .balance(new Money(new BigDecimal("1000.00"), Currency.USD))
+                .currency(Currency.USD)
+                .totalBalance(100000)
+                .availableBalance(100000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -48,8 +52,10 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
                 .id(UUID.randomUUID())
                 .accountNumber("CNTP-001")
                 .userId(UUID.randomUUID())
-                .type(AccountType.COMPANY)
-                .balance(new Money(new BigDecimal("5000.00"), Currency.USD))
+                .type(AccountType.SYSTEM)
+                .currency(Currency.USD)
+                .totalBalance(500000)
+                .availableBalance(500000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -65,11 +71,11 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
         Transaction transaction = Transaction.builder()
                 .id(UUID.randomUUID())
                 .type(TransactionType.TRANSFER)
-                .status(TransactionStatus.CREATED)
+                .status(TransactionStatus.PENDING)
                 .billAccountId(billAccount.getId())
                 .counterpartAccountId(counterpartAccount.getId())
-                .billingAmount(new Money(new BigDecimal("100.00"), Currency.USD))
-                .transactionAmount(new Money(new BigDecimal("100.00"), Currency.USD))
+                .amount(new Money(10000, Currency.USD))
+                .idempotencyKey("txn-001")
                 .description("Test transfer")
                 .createdAt(now)
                 .updatedAt(now)
@@ -89,11 +95,11 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
         Transaction t1 = Transaction.builder()
                 .id(UUID.randomUUID())
                 .type(TransactionType.TRANSFER)
-                .status(TransactionStatus.CREATED)
+                .status(TransactionStatus.PENDING)
                 .billAccountId(billAccount.getId())
                 .counterpartAccountId(counterpartAccount.getId())
-                .billingAmount(new Money(new BigDecimal("50.00"), Currency.USD))
-                .transactionAmount(new Money(new BigDecimal("50.00"), Currency.USD))
+                .amount(new Money(5000, Currency.USD))
+                .idempotencyKey("txn-002")
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -101,11 +107,11 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
         Transaction t2 = Transaction.builder()
                 .id(UUID.randomUUID())
                 .type(TransactionType.DEPOSIT)
-                .status(TransactionStatus.CREATED)
+                .status(TransactionStatus.PENDING)
                 .billAccountId(counterpartAccount.getId())
                 .counterpartAccountId(billAccount.getId())
-                .billingAmount(new Money(new BigDecimal("200.00"), Currency.USD))
-                .transactionAmount(new Money(new BigDecimal("200.00"), Currency.USD))
+                .amount(new Money(20000, Currency.USD))
+                .idempotencyKey("txn-003")
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -117,5 +123,65 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
                 billAccount.getId(), billAccount.getId()
         );
         assertThat(found).hasSize(2);
+    }
+
+    @Test
+    void shouldRejectDuplicateIdempotencyKey() {
+        Instant now = clock.now();
+
+        Transaction t1 = Transaction.builder()
+                .id(UUID.randomUUID())
+                .type(TransactionType.DEPOSIT)
+                .status(TransactionStatus.PENDING)
+                .billAccountId(billAccount.getId())
+                .counterpartAccountId(counterpartAccount.getId())
+                .amount(new Money(10000, Currency.USD))
+                .idempotencyKey("duplicate-key")
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        Transaction t2 = Transaction.builder()
+                .id(UUID.randomUUID())
+                .type(TransactionType.DEPOSIT)
+                .status(TransactionStatus.PENDING)
+                .billAccountId(billAccount.getId())
+                .counterpartAccountId(counterpartAccount.getId())
+                .amount(new Money(5000, Currency.USD))
+                .idempotencyKey("duplicate-key")
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        transactionRepository.save(t1);
+
+        assertThatThrownBy(() -> transactionRepository.save(t2))
+                .isInstanceOf(DuplicateKeyException.class);
+    }
+
+    @Test
+    void shouldFindTransactionByIdempotencyKey() {
+        Instant now = clock.now();
+
+        Transaction transaction = Transaction.builder()
+                .id(UUID.randomUUID())
+                .type(TransactionType.DEPOSIT)
+                .status(TransactionStatus.PENDING)
+                .billAccountId(billAccount.getId())
+                .counterpartAccountId(counterpartAccount.getId())
+                .amount(new Money(10000, Currency.USD))
+                .idempotencyKey("unique-key-001")
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        transactionRepository.save(transaction);
+
+        assertThat(transactionRepository.findByIdempotencyKey("unique-key-001"))
+                .isPresent()
+                .contains(transaction);
+
+        assertThat(transactionRepository.findByIdempotencyKey("non-existent"))
+                .isEmpty();
     }
 }

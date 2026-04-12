@@ -5,13 +5,11 @@ import java.util.Set;
 
 public enum TransactionStatus {
 
-    CREATED,
     PENDING,
     COMPLETED,
     DECLINED;
 
     private static final Map<TransactionStatus, Set<TransactionStatus>> ALLOWED_TRANSITIONS = Map.of(
-            CREATED, Set.of(PENDING, DECLINED),
             PENDING, Set.of(COMPLETED, DECLINED),
             COMPLETED, Set.of(),
             DECLINED, Set.of()

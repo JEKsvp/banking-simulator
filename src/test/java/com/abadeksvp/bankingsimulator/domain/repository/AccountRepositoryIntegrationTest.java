@@ -4,11 +4,9 @@ import com.abadeksvp.bankingsimulator.BaseIntegrationTest;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
-import com.abadeksvp.bankingsimulator.domain.model.Money;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,7 +28,9 @@ class AccountRepositoryIntegrationTest extends BaseIntegrationTest {
                 .accountNumber("ACC-001")
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
-                .balance(new Money(new BigDecimal("1000.00"), Currency.USD))
+                .currency(Currency.USD)
+                .totalBalance(100000)
+                .availableBalance(100000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -51,8 +51,10 @@ class AccountRepositoryIntegrationTest extends BaseIntegrationTest {
                 .id(id)
                 .accountNumber("ACC-001")
                 .userId(UUID.randomUUID())
-                .type(AccountType.COMPANY)
-                .balance(new Money(new BigDecimal("5000.00"), Currency.EUR))
+                .type(AccountType.SYSTEM)
+                .currency(Currency.EUR)
+                .totalBalance(500000)
+                .availableBalance(500000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

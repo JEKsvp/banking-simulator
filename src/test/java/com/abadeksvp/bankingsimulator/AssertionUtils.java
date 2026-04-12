@@ -1,7 +1,5 @@
 package com.abadeksvp.bankingsimulator;
 
-import java.math.BigDecimal;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 public final class AssertionUtils {
@@ -13,7 +11,6 @@ public final class AssertionUtils {
         assertThat(actual)
                 .usingRecursiveComparison()
                 .ignoringFields(ignoredFields)
-                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
                 .isEqualTo(expected);
     }
 }

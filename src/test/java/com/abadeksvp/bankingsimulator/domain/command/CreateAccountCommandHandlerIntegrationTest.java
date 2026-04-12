@@ -8,12 +8,10 @@ import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
-import com.abadeksvp.bankingsimulator.domain.model.Money;
 import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,10 +29,9 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldCreateAccount() throws Exception {
         UUID userId = UUID.randomUUID();
-        Money initialDeposit = new Money(new BigDecimal("1000.00"), Currency.USD);
 
         CreateAccountCommand command = new CreateAccountCommand(
-                userId, "ACC-100", AccountType.USER, initialDeposit, false
+                userId, "ACC-100", AccountType.USER, Currency.USD, 100000, false
         );
 
         Result<UUID> result = commandBus.dispatch(command).get();
@@ -48,7 +45,9 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
                 .accountNumber("ACC-100")
                 .userId(userId)
                 .type(AccountType.USER)
-                .balance(initialDeposit)
+                .currency(Currency.USD)
+                .totalBalance(100000)
+                .availableBalance(100000)
                 .createdAt(FIXED_INSTANT)
                 .updatedAt(FIXED_INSTANT)
                 .build();
@@ -61,17 +60,15 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldFailWhenAccountNumberAlreadyExists() throws Exception {
         UUID userId = UUID.randomUUID();
-        Money initialDeposit = new Money(new BigDecimal("500.00"), Currency.EUR);
 
         CreateAccountCommand command = new CreateAccountCommand(
-                userId, "ACC-200", AccountType.COMPANY, initialDeposit, false
+                userId, "ACC-200", AccountType.SYSTEM, Currency.EUR, 50000, false
         );
 
         commandBus.dispatch(command).get();
 
         CreateAccountCommand duplicate = new CreateAccountCommand(
-                UUID.randomUUID(), "ACC-200", AccountType.USER,
-                new Money(new BigDecimal("100.00"), Currency.EUR), false
+                UUID.randomUUID(), "ACC-200", AccountType.USER, Currency.EUR, 10000, false
         );
 
         Result<UUID> result = commandBus.dispatch(duplicate).get();

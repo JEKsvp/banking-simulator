@@ -9,7 +9,6 @@ import org.springframework.data.annotation.PersistenceCreator;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Column;
-import org.springframework.data.relational.core.mapping.Embedded;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.Instant;
@@ -34,8 +33,14 @@ public class Account implements Persistable<UUID> {
     @Column("type")
     private AccountType type;
 
-    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL)
-    private Money balance;
+    @Column("currency")
+    private Currency currency;
+
+    @Column("total_balance")
+    private long totalBalance;
+
+    @Column("available_balance")
+    private long availableBalance;
 
     @Column("created_at")
     private Instant createdAt;
@@ -52,8 +57,10 @@ public class Account implements Persistable<UUID> {
 
     @PersistenceCreator
     public Account(UUID id, String accountNumber, UUID userId, AccountType type,
-                   Money balance, Instant createdAt, Instant updatedAt, boolean overdraftEnabled) {
-        this(id, accountNumber, userId, type, balance, createdAt, updatedAt, overdraftEnabled, false);
+                   Currency currency, long totalBalance, long availableBalance,
+                   Instant createdAt, Instant updatedAt, boolean overdraftEnabled) {
+        this(id, accountNumber, userId, type, currency, totalBalance, availableBalance,
+                createdAt, updatedAt, overdraftEnabled, false);
     }
 
     @Override

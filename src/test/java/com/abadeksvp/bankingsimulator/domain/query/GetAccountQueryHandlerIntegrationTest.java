@@ -8,12 +8,10 @@ import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
-import com.abadeksvp.bankingsimulator.domain.model.Money;
 import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -38,7 +36,9 @@ class GetAccountQueryHandlerIntegrationTest extends BaseIntegrationTest {
                 .accountNumber("ACC-300")
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
-                .balance(new Money(new BigDecimal("2500.00"), Currency.USD))
+                .currency(Currency.USD)
+                .totalBalance(250000)
+                .availableBalance(250000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

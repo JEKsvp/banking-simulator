@@ -37,11 +37,11 @@ public class Transaction implements Persistable<UUID> {
     @Column("counterpart_account_id")
     private UUID counterpartAccountId;
 
-    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL, prefix = "billing_")
-    private Money billingAmount;
+    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL)
+    private Money amount;
 
-    @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL, prefix = "transaction_")
-    private Money transactionAmount;
+    @Column("idempotency_key")
+    private String idempotencyKey;
 
     @Column("description")
     private String description;
@@ -59,10 +59,10 @@ public class Transaction implements Persistable<UUID> {
     @PersistenceCreator
     public Transaction(UUID id, TransactionType type, TransactionStatus status,
                        UUID billAccountId, UUID counterpartAccountId,
-                       Money billingAmount, Money transactionAmount, String description,
+                       Money amount, String idempotencyKey, String description,
                        Instant createdAt, Instant updatedAt) {
         this(id, type, status, billAccountId, counterpartAccountId,
-                billingAmount, transactionAmount, description, createdAt, updatedAt, false);
+                amount, idempotencyKey, description, createdAt, updatedAt, false);
     }
 
     public void transition(TransactionStatus newStatus) {
