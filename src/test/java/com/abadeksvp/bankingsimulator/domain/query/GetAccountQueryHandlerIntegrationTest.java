@@ -8,6 +8,7 @@ import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
+import com.abadeksvp.bankingsimulator.domain.model.Money;
 import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Instant;
 import java.util.UUID;
 
-import static com.abadeksvp.bankingsimulator.AssertionUtils.assertEqualsIgnoringFields;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GetAccountQueryHandlerIntegrationTest extends BaseIntegrationTest {
@@ -27,14 +27,15 @@ class GetAccountQueryHandlerIntegrationTest extends BaseIntegrationTest {
     private AccountRepository accountRepository;
 
     @Test
-    void shouldReturnAccount() throws Exception {
+    void shouldReturnAccountView() throws Exception {
         UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         Instant now = clock.now();
 
         Account account = Account.builder()
                 .id(accountId)
                 .accountNumber("ACC-300")
-                .userId(UUID.randomUUID())
+                .userId(userId)
                 .type(AccountType.USER)
                 .currency(Currency.USD)
                 .createdAt(now)
@@ -43,16 +44,29 @@ class GetAccountQueryHandlerIntegrationTest extends BaseIntegrationTest {
 
         accountRepository.save(account);
 
-        Result<Account> result = queryBus.dispatch(new GetAccountQuery(accountId)).get();
+        Result<AccountView> result = queryBus.dispatch(new GetAccountQuery(accountId)).get();
 
-        assertEqualsIgnoringFields(result, Result.success(account), "data.isNew");
+        AccountView expected = new AccountView(
+                accountId,
+                "ACC-300",
+                userId,
+                AccountType.USER,
+                Currency.USD,
+                new Money(0, Currency.USD),
+                new Money(0, Currency.USD),
+                false,
+                now,
+                now
+        );
+
+        assertThat(result).isEqualTo(Result.success(expected));
     }
 
     @Test
     void shouldReturnFailureWhenAccountNotFound() throws Exception {
         UUID nonExistentId = UUID.randomUUID();
 
-        Result<Account> result = queryBus.dispatch(new GetAccountQuery(nonExistentId)).get();
+        Result<AccountView> result = queryBus.dispatch(new GetAccountQuery(nonExistentId)).get();
 
         assertThat(result).isEqualTo(Result.failure(
                 new AppError(AccountErrorCode.ACCOUNT_NOT_FOUND,
