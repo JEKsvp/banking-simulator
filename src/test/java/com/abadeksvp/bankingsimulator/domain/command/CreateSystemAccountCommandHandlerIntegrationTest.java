@@ -18,7 +18,7 @@ import java.util.UUID;
 import static com.abadeksvp.bankingsimulator.AssertionUtils.assertEqualsIgnoringFields;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
+class CreateSystemAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private CommandBus commandBus;
@@ -27,12 +27,8 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
     private AccountRepository accountRepository;
 
     @Test
-    void shouldCreateAccount() throws Exception {
-        UUID userId = UUID.randomUUID();
-
-        CreateAccountCommand command = new CreateAccountCommand(
-                userId, "ACC-100", AccountType.USER, Currency.USD, false
-        );
+    void shouldCreateSystemAccount() throws Exception {
+        CreateSystemAccountCommand command = new CreateSystemAccountCommand(Currency.USD);
 
         Result<UUID> result = commandBus.dispatch(command).get();
 
@@ -40,40 +36,34 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
         UUID accountId = ((Result.Success<UUID>) result).data();
         assertThat(accountId).isNotNull();
 
+        Optional<Account> saved = accountRepository.findByAccountNumber("SYSTEM-USD");
+        assertThat(saved).isPresent();
+
         Account expected = Account.builder()
                 .id(accountId)
-                .accountNumber("ACC-100")
-                .userId(userId)
-                .type(AccountType.USER)
+                .accountNumber("SYSTEM-USD")
+                .userId(CreateSystemAccountCommandHandler.SYSTEM_USER_ID)
+                .type(AccountType.SYSTEM)
                 .currency(Currency.USD)
+                .overdraftEnabled(true)
                 .createdAt(FIXED_INSTANT)
                 .updatedAt(FIXED_INSTANT)
                 .build();
 
-        Optional<Account> saved = accountRepository.findByAccountNumber("ACC-100");
-        assertThat(saved).isPresent();
         assertEqualsIgnoringFields(saved.get(), expected, "isNew");
     }
 
     @Test
     void shouldFailWhenAccountNumberAlreadyExists() throws Exception {
-        UUID userId = UUID.randomUUID();
+        commandBus.dispatch(new CreateSystemAccountCommand(Currency.EUR)).get();
 
-        CreateAccountCommand command = new CreateAccountCommand(
-                userId, "ACC-200", AccountType.SYSTEM, Currency.EUR, false
-        );
-
-        commandBus.dispatch(command).get();
-
-        CreateAccountCommand duplicate = new CreateAccountCommand(
-                UUID.randomUUID(), "ACC-200", AccountType.USER, Currency.EUR, false
-        );
-
-        Result<UUID> result = commandBus.dispatch(duplicate).get();
+        Result<UUID> result = commandBus.dispatch(
+                new CreateSystemAccountCommand(Currency.EUR)
+        ).get();
 
         assertThat(result).isEqualTo(Result.failure(
                 new AppError(AccountErrorCode.ACCOUNT_ALREADY_EXISTS,
-                        "Account with number ACC-200 already exists")
+                        "Account with number SYSTEM-EUR already exists")
         ));
     }
 }

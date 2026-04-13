@@ -6,6 +6,7 @@ import com.abadeksvp.bankingsimulator.cqrs.core.AppError;
 import com.abadeksvp.bankingsimulator.cqrs.core.Result;
 import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
+import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.springframework.stereotype.Component;
 
@@ -13,23 +14,27 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Component
-public class CreateAccountCommandHandler extends AbstractCommandHandler<CreateAccountCommand, UUID> {
+public class CreateSystemAccountCommandHandler extends AbstractCommandHandler<CreateSystemAccountCommand, UUID> {
+
+    static final UUID SYSTEM_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final AccountRepository accountRepository;
     private final Clock clock;
 
-    public CreateAccountCommandHandler(AccountRepository accountRepository, Clock clock) {
-        super(CreateAccountCommand.class);
+    public CreateSystemAccountCommandHandler(AccountRepository accountRepository, Clock clock) {
+        super(CreateSystemAccountCommand.class);
         this.accountRepository = accountRepository;
         this.clock = clock;
     }
 
     @Override
-    public Result<UUID> handle(CreateAccountCommand command) {
-        if (accountRepository.findByAccountNumber(command.accountNumber()).isPresent()) {
+    public Result<UUID> handle(CreateSystemAccountCommand command) {
+        String accountNumber = "SYSTEM-" + command.currency().name();
+
+        if (accountRepository.findByAccountNumber(accountNumber).isPresent()) {
             return Result.failure(new AppError(
                     AccountErrorCode.ACCOUNT_ALREADY_EXISTS,
-                    "Account with number %s already exists".formatted(command.accountNumber())
+                    "Account with number %s already exists".formatted(accountNumber)
             ));
         }
 
@@ -38,11 +43,11 @@ public class CreateAccountCommandHandler extends AbstractCommandHandler<CreateAc
 
         Account account = Account.builder()
                 .id(accountId)
-                .accountNumber(command.accountNumber())
-                .userId(command.userId())
-                .type(command.accountType())
+                .accountNumber(accountNumber)
+                .userId(SYSTEM_USER_ID)
+                .type(AccountType.SYSTEM)
                 .currency(command.currency())
-                .overdraftEnabled(command.overdraftEnabled())
+                .overdraftEnabled(true)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
