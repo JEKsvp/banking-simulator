@@ -5,7 +5,6 @@ import com.abadeksvp.bankingsimulator.cqrs.core.AppError;
 import com.abadeksvp.bankingsimulator.cqrs.core.Result;
 import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.error.CurrencyMismatchException;
-import com.abadeksvp.bankingsimulator.domain.error.AccountNotFoundException;
 import com.abadeksvp.bankingsimulator.domain.error.TransactionErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
@@ -32,6 +31,16 @@ public class DepositCommandHandler extends AbstractCommandHandler<DepositCommand
 
     @Override
     public Result<UUID> handle(DepositCommand command) {
+        Account targetAccount = accountRepository.findById(command.accountId()).orElse(null);
+        if (targetAccount == null) {
+            return Result.failure(new AppError(AccountErrorCode.ACCOUNT_NOT_FOUND,
+                    "Account with id %s not found".formatted(command.accountId())));
+        }
+        if (targetAccount.getType() != AccountType.USER) {
+            return Result.failure(new AppError(TransactionErrorCode.DEPOSIT_NOT_ALLOWED,
+                    "Deposits are only allowed to user accounts"));
+        }
+
         Account systemAccount = accountRepository
                 .findByTypeAndCurrency(AccountType.SYSTEM, command.amount().currency())
                 .orElse(null);
@@ -54,8 +63,6 @@ public class DepositCommandHandler extends AbstractCommandHandler<DepositCommand
 
             Transaction transaction = transactionProcessor.processAtomically(request);
             return Result.success(transaction.getId());
-        } catch (AccountNotFoundException e) {
-            return Result.failure(new AppError(AccountErrorCode.ACCOUNT_NOT_FOUND, e.getMessage()));
         } catch (CurrencyMismatchException e) {
             return Result.failure(new AppError(TransactionErrorCode.CURRENCY_MISMATCH, e.getMessage()));
         }

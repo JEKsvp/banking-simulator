@@ -11,14 +11,12 @@ import com.abadeksvp.bankingsimulator.domain.model.Currency;
 import com.abadeksvp.bankingsimulator.domain.model.Money;
 import com.abadeksvp.bankingsimulator.domain.model.Transaction;
 import com.abadeksvp.bankingsimulator.domain.model.TransactionStatus;
-import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import com.abadeksvp.bankingsimulator.domain.repository.TransactionRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.abadeksvp.bankingsimulator.AssertionUtils.assertEqualsIgnoringFields;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,15 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class TransactionProcessorIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
-    private TransactionProcessor transactionProcessor;
-
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
     private TransactionRepository transactionRepository;
-
-    private final AtomicInteger idempotencyCounter = new AtomicInteger();
 
     @Nested
     class ProcessAtomically {
@@ -588,21 +578,4 @@ class TransactionProcessorIntegrationTest extends BaseIntegrationTest {
         return account;
     }
 
-    private void fundAccount(Account systemAccount, Account userAccount, Money amount) {
-        transactionProcessor.processAtomically(new ProcessTransactionRequest(
-                "fund-" + idempotencyCounter.incrementAndGet(),
-                systemAccount.getId(),
-                userAccount.getId(),
-                amount,
-                "Test funding"
-        ));
-    }
-
-    private void assertZeroSum() {
-        long sum = 0;
-        for (Account account : accountRepository.findAll()) {
-            sum += account.getTotalBalance().amount();
-        }
-        assertThat(sum).isZero();
-    }
 }

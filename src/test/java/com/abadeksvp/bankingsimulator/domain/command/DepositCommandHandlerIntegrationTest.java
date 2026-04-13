@@ -7,15 +7,12 @@ import com.abadeksvp.bankingsimulator.cqrs.core.Result;
 import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.error.TransactionErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
-import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
 import com.abadeksvp.bankingsimulator.domain.model.Money;
-import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,9 +21,6 @@ class DepositCommandHandlerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private CommandBus commandBus;
-
-    @Autowired
-    private AccountRepository accountRepository;
 
     private Account systemAccount;
 
@@ -126,42 +120,18 @@ class DepositCommandHandlerIntegrationTest extends BaseIntegrationTest {
         assertThat(updated.getTotalBalance()).isEqualTo(new Money(50000, Currency.USD));
     }
 
-    private Account createSystemAccount(Currency currency) {
-        Instant now = clock.now();
-        Account account = Account.builder()
-                .id(UUID.randomUUID())
-                .accountNumber("SYSTEM-" + currency.name())
-                .userId(CreateSystemAccountCommandHandler.SYSTEM_USER_ID)
-                .type(AccountType.SYSTEM)
-                .currency(currency)
-                .overdraftEnabled(true)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        accountRepository.save(account);
-        return account;
-    }
+    @Test
+    void shouldReturnFailureWhenDepositingToSystemAccount() throws Exception {
+        DepositCommand command = new DepositCommand(
+                "deposit-005", systemAccount.getId(),
+                new Money(10000, Currency.USD), "Deposit to system"
+        );
 
-    private Account createUserAccount(Currency currency) {
-        Instant now = clock.now();
-        Account account = Account.builder()
-                .id(UUID.randomUUID())
-                .accountNumber("ACC-" + UUID.randomUUID().toString().substring(0, 8))
-                .userId(UUID.randomUUID())
-                .type(AccountType.USER)
-                .currency(currency)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        accountRepository.save(account);
-        return account;
-    }
+        Result<UUID> result = commandBus.dispatch(command).get();
 
-    private void assertZeroSum() {
-        long sum = 0;
-        for (Account account : accountRepository.findAll()) {
-            sum += account.getTotalBalance().amount();
-        }
-        assertThat(sum).isZero();
+        assertThat(result).isEqualTo(Result.failure(
+                new AppError(TransactionErrorCode.DEPOSIT_NOT_ALLOWED,
+                        "Deposits are only allowed to user accounts")
+        ));
     }
 }

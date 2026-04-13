@@ -8,7 +8,6 @@ import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
-import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -22,9 +21,6 @@ class CreateSystemAccountCommandHandlerIntegrationTest extends BaseIntegrationTe
 
     @Autowired
     private CommandBus commandBus;
-
-    @Autowired
-    private AccountRepository accountRepository;
 
     @Test
     void shouldCreateSystemAccount() throws Exception {

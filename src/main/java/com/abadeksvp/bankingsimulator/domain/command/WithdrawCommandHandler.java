@@ -4,7 +4,6 @@ import com.abadeksvp.bankingsimulator.cqrs.command.AbstractCommandHandler;
 import com.abadeksvp.bankingsimulator.cqrs.core.AppError;
 import com.abadeksvp.bankingsimulator.cqrs.core.Result;
 import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
-import com.abadeksvp.bankingsimulator.domain.error.AccountNotFoundException;
 import com.abadeksvp.bankingsimulator.domain.error.CurrencyMismatchException;
 import com.abadeksvp.bankingsimulator.domain.error.InsufficientFundsException;
 import com.abadeksvp.bankingsimulator.domain.error.TransactionErrorCode;
@@ -33,6 +32,16 @@ public class WithdrawCommandHandler extends AbstractCommandHandler<WithdrawComma
 
     @Override
     public Result<UUID> handle(WithdrawCommand command) {
+        Account targetAccount = accountRepository.findById(command.accountId()).orElse(null);
+        if (targetAccount == null) {
+            return Result.failure(new AppError(AccountErrorCode.ACCOUNT_NOT_FOUND,
+                    "Account with id %s not found".formatted(command.accountId())));
+        }
+        if (targetAccount.getType() != AccountType.USER) {
+            return Result.failure(new AppError(TransactionErrorCode.WITHDRAWAL_NOT_ALLOWED,
+                    "Withdrawals are only allowed from user accounts"));
+        }
+
         Account systemAccount = accountRepository
                 .findByTypeAndCurrency(AccountType.SYSTEM, command.amount().currency())
                 .orElse(null);
@@ -55,8 +64,6 @@ public class WithdrawCommandHandler extends AbstractCommandHandler<WithdrawComma
 
             Transaction transaction = transactionProcessor.processAtomically(request);
             return Result.success(transaction.getId());
-        } catch (AccountNotFoundException e) {
-            return Result.failure(new AppError(AccountErrorCode.ACCOUNT_NOT_FOUND, e.getMessage()));
         } catch (InsufficientFundsException e) {
             return Result.failure(new AppError(TransactionErrorCode.INSUFFICIENT_FUNDS, e.getMessage()));
         } catch (CurrencyMismatchException e) {

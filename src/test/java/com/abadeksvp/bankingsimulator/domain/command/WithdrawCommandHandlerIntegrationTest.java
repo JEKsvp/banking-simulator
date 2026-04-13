@@ -7,19 +7,13 @@ import com.abadeksvp.bankingsimulator.cqrs.core.Result;
 import com.abadeksvp.bankingsimulator.domain.error.AccountErrorCode;
 import com.abadeksvp.bankingsimulator.domain.error.TransactionErrorCode;
 import com.abadeksvp.bankingsimulator.domain.model.Account;
-import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
 import com.abadeksvp.bankingsimulator.domain.model.Money;
-import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
-import com.abadeksvp.bankingsimulator.domain.service.ProcessTransactionRequest;
-import com.abadeksvp.bankingsimulator.domain.service.TransactionProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,13 +22,6 @@ class WithdrawCommandHandlerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private CommandBus commandBus;
 
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private TransactionProcessor transactionProcessor;
-
-    private final AtomicInteger idempotencyCounter = new AtomicInteger();
     private Account systemAccount;
 
     @BeforeEach
@@ -45,7 +32,7 @@ class WithdrawCommandHandlerIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldWithdrawFromAccount() throws Exception {
         Account userAccount = createUserAccount(Currency.USD);
-        fundAccount(userAccount, new Money(100000, Currency.USD));
+        fundAccount(systemAccount, userAccount, new Money(100000, Currency.USD));
 
         WithdrawCommand command = new WithdrawCommand(
                 "withdraw-001", userAccount.getId(),
@@ -66,7 +53,7 @@ class WithdrawCommandHandlerIntegrationTest extends BaseIntegrationTest {
     @Test
     void shouldReturnFailureForInsufficientFunds() throws Exception {
         Account userAccount = createUserAccount(Currency.USD);
-        fundAccount(userAccount, new Money(10000, Currency.USD));
+        fundAccount(systemAccount, userAccount, new Money(10000, Currency.USD));
 
         WithdrawCommand command = new WithdrawCommand(
                 "withdraw-002", userAccount.getId(),
@@ -115,52 +102,56 @@ class WithdrawCommandHandlerIntegrationTest extends BaseIntegrationTest {
         ));
     }
 
-    private Account createSystemAccount(Currency currency) {
-        Instant now = clock.now();
-        Account account = Account.builder()
-                .id(UUID.randomUUID())
-                .accountNumber("SYSTEM-" + currency.name())
-                .userId(CreateSystemAccountCommandHandler.SYSTEM_USER_ID)
-                .type(AccountType.SYSTEM)
-                .currency(currency)
-                .overdraftEnabled(true)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        accountRepository.save(account);
-        return account;
-    }
+    @Test
+    void shouldReturnFailureForCurrencyMismatch() throws Exception {
+        createSystemAccount(Currency.GBP);
+        Account usdAccount = createUserAccount(Currency.USD);
+        fundAccount(systemAccount, usdAccount, new Money(50000, Currency.USD));
 
-    private Account createUserAccount(Currency currency) {
-        Instant now = clock.now();
-        Account account = Account.builder()
-                .id(UUID.randomUUID())
-                .accountNumber("ACC-" + UUID.randomUUID().toString().substring(0, 8))
-                .userId(UUID.randomUUID())
-                .type(AccountType.USER)
-                .currency(currency)
-                .createdAt(now)
-                .updatedAt(now)
-                .build();
-        accountRepository.save(account);
-        return account;
-    }
+        WithdrawCommand command = new WithdrawCommand(
+                "withdraw-005", usdAccount.getId(),
+                new Money(10000, Currency.GBP), "Currency mismatch"
+        );
 
-    private void fundAccount(Account userAccount, Money amount) {
-        transactionProcessor.processAtomically(new ProcessTransactionRequest(
-                "fund-" + idempotencyCounter.incrementAndGet(),
-                systemAccount.getId(),
-                userAccount.getId(),
-                amount,
-                "Test funding"
+        Result<UUID> result = commandBus.dispatch(command).get();
+
+        assertThat(result).isEqualTo(Result.failure(
+                new AppError(TransactionErrorCode.CURRENCY_MISMATCH,
+                        "Source account currency USD does not match destination account currency GBP")
         ));
     }
 
-    private void assertZeroSum() {
-        long sum = 0;
-        for (Account account : accountRepository.findAll()) {
-            sum += account.getTotalBalance().amount();
-        }
-        assertThat(sum).isZero();
+    @Test
+    void shouldHandleIdempotentWithdrawal() throws Exception {
+        Account userAccount = createUserAccount(Currency.USD);
+        fundAccount(systemAccount, userAccount, new Money(100000, Currency.USD));
+
+        WithdrawCommand command = new WithdrawCommand(
+                "withdraw-idempotent", userAccount.getId(),
+                new Money(30000, Currency.USD), "Withdrawal"
+        );
+
+        Result<UUID> first = commandBus.dispatch(command).get();
+        Result<UUID> second = commandBus.dispatch(command).get();
+
+        assertThat(first).isEqualTo(second);
+
+        Account updated = accountRepository.findById(userAccount.getId()).orElseThrow();
+        assertThat(updated.getTotalBalance()).isEqualTo(new Money(70000, Currency.USD));
+    }
+
+    @Test
+    void shouldReturnFailureWhenWithdrawingFromSystemAccount() throws Exception {
+        WithdrawCommand command = new WithdrawCommand(
+                "withdraw-006", systemAccount.getId(),
+                new Money(10000, Currency.USD), "Withdraw from system"
+        );
+
+        Result<UUID> result = commandBus.dispatch(command).get();
+
+        assertThat(result).isEqualTo(Result.failure(
+                new AppError(TransactionErrorCode.WITHDRAWAL_NOT_ALLOWED,
+                        "Withdrawals are only allowed from user accounts")
+        ));
     }
 }

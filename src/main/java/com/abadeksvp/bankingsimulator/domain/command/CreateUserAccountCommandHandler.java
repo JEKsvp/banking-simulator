@@ -35,6 +35,20 @@ public class CreateUserAccountCommandHandler extends AbstractCommandHandler<Crea
     @Override
     @Transactional
     public Result<UUID> handle(CreateUserAccountCommand command) {
+        Account systemAccount = null;
+        if (command.initialDeposit() != null) {
+            systemAccount = accountRepository
+                    .findByTypeAndCurrency(AccountType.SYSTEM, command.currency())
+                    .orElse(null);
+
+            if (systemAccount == null) {
+                return Result.failure(new AppError(
+                        TransactionErrorCode.SYSTEM_ACCOUNT_NOT_FOUND,
+                        "No system account found for currency %s".formatted(command.currency())
+                ));
+            }
+        }
+
         Instant now = clock.now();
         UUID accountId = UUID.randomUUID();
         String accountNumber = "ACC-" + accountId;
@@ -53,17 +67,6 @@ public class CreateUserAccountCommandHandler extends AbstractCommandHandler<Crea
         accountRepository.save(account);
 
         if (command.initialDeposit() != null) {
-            Account systemAccount = accountRepository
-                    .findByTypeAndCurrency(AccountType.SYSTEM, command.currency())
-                    .orElse(null);
-
-            if (systemAccount == null) {
-                return Result.failure(new AppError(
-                        TransactionErrorCode.SYSTEM_ACCOUNT_NOT_FOUND,
-                        "No system account found for currency %s".formatted(command.currency())
-                ));
-            }
-
             ProcessTransactionRequest depositRequest = new ProcessTransactionRequest(
                     "initial-deposit-" + accountId,
                     systemAccount.getId(),

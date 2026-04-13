@@ -9,21 +9,18 @@ import com.abadeksvp.bankingsimulator.domain.model.Account;
 import com.abadeksvp.bankingsimulator.domain.model.AccountType;
 import com.abadeksvp.bankingsimulator.domain.model.Currency;
 import com.abadeksvp.bankingsimulator.domain.model.Money;
-import com.abadeksvp.bankingsimulator.domain.repository.AccountRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.UUID;
 
+import static com.abadeksvp.bankingsimulator.AssertionUtils.assertEqualsIgnoringFields;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CreateUserAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private CommandBus commandBus;
-
-    @Autowired
-    private AccountRepository accountRepository;
 
     @Test
     void shouldCreateAccount() throws Exception {
@@ -40,13 +37,21 @@ class CreateUserAccountCommandHandlerIntegrationTest extends BaseIntegrationTest
         assertThat(accountId).isNotNull();
 
         Account saved = accountRepository.findById(accountId).orElseThrow();
-        assertThat(saved.getAccountNumber()).isEqualTo("ACC-" + accountId);
-        assertThat(saved.getUserId()).isEqualTo(userId);
-        assertThat(saved.getType()).isEqualTo(AccountType.USER);
-        assertThat(saved.getCurrency()).isEqualTo(Currency.USD);
-        assertThat(saved.isOverdraftEnabled()).isFalse();
-        assertThat(saved.getCreatedAt()).isEqualTo(FIXED_INSTANT);
-        assertThat(saved.getUpdatedAt()).isEqualTo(FIXED_INSTANT);
+
+        Account expected = Account.builder()
+                .id(accountId)
+                .accountNumber("ACC-" + accountId)
+                .userId(userId)
+                .type(AccountType.USER)
+                .currency(Currency.USD)
+                .overdraftEnabled(false)
+                .createdAt(FIXED_INSTANT)
+                .updatedAt(FIXED_INSTANT)
+                .build();
+
+        assertEqualsIgnoringFields(saved, expected, "isNew");
+        assertThat(saved.getTotalBalance()).isEqualTo(new Money(0, Currency.USD));
+        assertThat(saved.getAvailableBalance()).isEqualTo(new Money(0, Currency.USD));
     }
 
     @Test
@@ -85,13 +90,7 @@ class CreateUserAccountCommandHandlerIntegrationTest extends BaseIntegrationTest
                 new AppError(TransactionErrorCode.SYSTEM_ACCOUNT_NOT_FOUND,
                         "No system account found for currency GBP")
         ));
-    }
 
-    private void assertZeroSum() {
-        long sum = 0;
-        for (Account account : accountRepository.findAll()) {
-            sum += account.getTotalBalance().amount();
-        }
-        assertThat(sum).isZero();
+        assertThat(accountRepository.findAll()).isEmpty();
     }
 }

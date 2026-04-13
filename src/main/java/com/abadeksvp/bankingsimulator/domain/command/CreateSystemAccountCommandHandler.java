@@ -16,7 +16,7 @@ import java.util.UUID;
 @Component
 public class CreateSystemAccountCommandHandler extends AbstractCommandHandler<CreateSystemAccountCommand, UUID> {
 
-    static final UUID SYSTEM_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+    public static final UUID SYSTEM_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
     private final AccountRepository accountRepository;
     private final Clock clock;
