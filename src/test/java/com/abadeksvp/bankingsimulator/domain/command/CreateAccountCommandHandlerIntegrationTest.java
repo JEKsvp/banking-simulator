@@ -31,7 +31,7 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
         UUID userId = UUID.randomUUID();
 
         CreateAccountCommand command = new CreateAccountCommand(
-                userId, "ACC-100", AccountType.USER, Currency.USD, 100000, false
+                userId, "ACC-100", AccountType.USER, Currency.USD, false
         );
 
         Result<UUID> result = commandBus.dispatch(command).get();
@@ -46,8 +46,6 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
                 .userId(userId)
                 .type(AccountType.USER)
                 .currency(Currency.USD)
-                .totalBalance(100000)
-                .availableBalance(100000)
                 .createdAt(FIXED_INSTANT)
                 .updatedAt(FIXED_INSTANT)
                 .build();
@@ -62,13 +60,13 @@ class CreateAccountCommandHandlerIntegrationTest extends BaseIntegrationTest {
         UUID userId = UUID.randomUUID();
 
         CreateAccountCommand command = new CreateAccountCommand(
-                userId, "ACC-200", AccountType.SYSTEM, Currency.EUR, 50000, false
+                userId, "ACC-200", AccountType.SYSTEM, Currency.EUR, false
         );
 
         commandBus.dispatch(command).get();
 
         CreateAccountCommand duplicate = new CreateAccountCommand(
-                UUID.randomUUID(), "ACC-200", AccountType.USER, Currency.EUR, 10000, false
+                UUID.randomUUID(), "ACC-200", AccountType.USER, Currency.EUR, false
         );
 
         Result<UUID> result = commandBus.dispatch(duplicate).get();

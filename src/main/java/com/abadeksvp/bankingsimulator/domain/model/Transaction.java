@@ -25,17 +25,14 @@ public class Transaction implements Persistable<UUID> {
     @Id
     private UUID id;
 
-    @Column("type")
-    private TransactionType type;
-
     @Column("status")
     private TransactionStatus status;
 
-    @Column("bill_account_id")
-    private UUID billAccountId;
+    @Column("source_account_id")
+    private UUID sourceAccountId;
 
-    @Column("counterpart_account_id")
-    private UUID counterpartAccountId;
+    @Column("destination_account_id")
+    private UUID destinationAccountId;
 
     @Embedded(onEmpty = Embedded.OnEmpty.USE_NULL)
     private Money amount;
@@ -45,6 +42,9 @@ public class Transaction implements Persistable<UUID> {
 
     @Column("description")
     private String description;
+
+    @Column("decline_reason")
+    private String declineReason;
 
     @Column("created_at")
     private Instant createdAt;
@@ -57,20 +57,27 @@ public class Transaction implements Persistable<UUID> {
     private boolean isNew = true;
 
     @PersistenceCreator
-    public Transaction(UUID id, TransactionType type, TransactionStatus status,
-                       UUID billAccountId, UUID counterpartAccountId,
+    public Transaction(UUID id, TransactionStatus status,
+                       UUID sourceAccountId, UUID destinationAccountId,
                        Money amount, String idempotencyKey, String description,
+                       String declineReason,
                        Instant createdAt, Instant updatedAt) {
-        this(id, type, status, billAccountId, counterpartAccountId,
-                amount, idempotencyKey, description, createdAt, updatedAt, false);
+        this(id, status, sourceAccountId, destinationAccountId,
+                amount, idempotencyKey, description, declineReason, createdAt, updatedAt, false);
     }
 
-    public void transition(TransactionStatus newStatus) {
+    public void transition(TransactionStatus newStatus, Instant now) {
         if (!status.canTransitionTo(newStatus)) {
             throw new IllegalStateException(
                     "Cannot transition from %s to %s".formatted(status, newStatus));
         }
         this.status = newStatus;
+        this.updatedAt = now;
+    }
+
+    public void decline(String reason, Instant now) {
+        transition(TransactionStatus.DECLINED, now);
+        this.declineReason = reason;
     }
 
     @Override

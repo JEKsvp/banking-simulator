@@ -15,16 +15,15 @@ CREATE INDEX idx_accounts_user_id ON accounts (user_id);
 
 CREATE TABLE transactions
 (
-    id                UUID           PRIMARY KEY,
-    type              VARCHAR(20)    NOT NULL,
-    bill_account_id UUID           NOT NULL REFERENCES accounts (id),
-    counterpart_account_id UUID           NOT NULL REFERENCES accounts (id),
-    amount                BIGINT         NOT NULL,
-    currency              VARCHAR(3)     NOT NULL,
-    idempotency_key           VARCHAR(255)   NOT NULL UNIQUE,
-    description               VARCHAR(500),
-    created_at        TIMESTAMPTZ    NOT NULL DEFAULT now()
+    id                     UUID           PRIMARY KEY,
+    source_account_id      UUID           NOT NULL REFERENCES accounts (id),
+    destination_account_id UUID           NOT NULL REFERENCES accounts (id),
+    amount                 BIGINT         NOT NULL,
+    currency               VARCHAR(3)     NOT NULL,
+    idempotency_key        VARCHAR(255)   NOT NULL UNIQUE,
+    description            VARCHAR(500),
+    created_at             TIMESTAMPTZ    NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_transactions_bill_account_id ON transactions (bill_account_id);
-CREATE INDEX idx_transactions_counterpart_account_id ON transactions (counterpart_account_id);
+CREATE INDEX idx_transactions_source_account_id ON transactions (source_account_id);
+CREATE INDEX idx_transactions_destination_account_id ON transactions (destination_account_id);

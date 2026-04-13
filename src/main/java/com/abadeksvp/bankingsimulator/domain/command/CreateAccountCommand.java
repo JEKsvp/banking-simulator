@@ -11,7 +11,6 @@ public record CreateAccountCommand(
         String accountNumber,
         AccountType accountType,
         Currency currency,
-        long initialDeposit,
         boolean overdraftEnabled
 ) implements Command<UUID> {
 }

@@ -7,7 +7,6 @@ import com.abadeksvp.bankingsimulator.domain.model.Currency;
 import com.abadeksvp.bankingsimulator.domain.model.Money;
 import com.abadeksvp.bankingsimulator.domain.model.Transaction;
 import com.abadeksvp.bankingsimulator.domain.model.TransactionStatus;
-import com.abadeksvp.bankingsimulator.domain.model.TransactionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,39 +28,35 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private AccountRepository accountRepository;
 
-    private Account billAccount;
-    private Account counterpartAccount;
+    private Account sourceAccount;
+    private Account destinationAccount;
 
     @BeforeEach
     void setUp() {
         Instant now = clock.now();
 
-        billAccount = Account.builder()
+        sourceAccount = Account.builder()
                 .id(UUID.randomUUID())
-                .accountNumber("BILL-001")
+                .accountNumber("SRC-001")
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
                 .currency(Currency.USD)
-                .totalBalance(100000)
-                .availableBalance(100000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        counterpartAccount = Account.builder()
+        destinationAccount = Account.builder()
                 .id(UUID.randomUUID())
-                .accountNumber("CNTP-001")
+                .accountNumber("DST-001")
                 .userId(UUID.randomUUID())
                 .type(AccountType.SYSTEM)
                 .currency(Currency.USD)
-                .totalBalance(500000)
-                .availableBalance(500000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        accountRepository.save(billAccount);
-        accountRepository.save(counterpartAccount);
+        accountRepository.save(sourceAccount);
+        accountRepository.save(destinationAccount);
     }
 
     @Test
@@ -70,10 +65,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         Transaction transaction = Transaction.builder()
                 .id(UUID.randomUUID())
-                .type(TransactionType.TRANSFER)
                 .status(TransactionStatus.PENDING)
-                .billAccountId(billAccount.getId())
-                .counterpartAccountId(counterpartAccount.getId())
+                .sourceAccountId(sourceAccount.getId())
+                .destinationAccountId(destinationAccount.getId())
                 .amount(new Money(10000, Currency.USD))
                 .idempotencyKey("txn-001")
                 .description("Test transfer")
@@ -94,10 +88,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         Transaction t1 = Transaction.builder()
                 .id(UUID.randomUUID())
-                .type(TransactionType.TRANSFER)
                 .status(TransactionStatus.PENDING)
-                .billAccountId(billAccount.getId())
-                .counterpartAccountId(counterpartAccount.getId())
+                .sourceAccountId(sourceAccount.getId())
+                .destinationAccountId(destinationAccount.getId())
                 .amount(new Money(5000, Currency.USD))
                 .idempotencyKey("txn-002")
                 .createdAt(now)
@@ -106,10 +99,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         Transaction t2 = Transaction.builder()
                 .id(UUID.randomUUID())
-                .type(TransactionType.DEPOSIT)
                 .status(TransactionStatus.PENDING)
-                .billAccountId(counterpartAccount.getId())
-                .counterpartAccountId(billAccount.getId())
+                .sourceAccountId(destinationAccount.getId())
+                .destinationAccountId(sourceAccount.getId())
                 .amount(new Money(20000, Currency.USD))
                 .idempotencyKey("txn-003")
                 .createdAt(now)
@@ -119,8 +111,8 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
         transactionRepository.save(t1);
         transactionRepository.save(t2);
 
-        List<Transaction> found = transactionRepository.findByBillAccountIdOrCounterpartAccountId(
-                billAccount.getId(), billAccount.getId()
+        List<Transaction> found = transactionRepository.findBySourceAccountIdOrDestinationAccountId(
+                sourceAccount.getId(), sourceAccount.getId()
         );
         assertThat(found).hasSize(2);
     }
@@ -131,10 +123,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         Transaction t1 = Transaction.builder()
                 .id(UUID.randomUUID())
-                .type(TransactionType.DEPOSIT)
                 .status(TransactionStatus.PENDING)
-                .billAccountId(billAccount.getId())
-                .counterpartAccountId(counterpartAccount.getId())
+                .sourceAccountId(sourceAccount.getId())
+                .destinationAccountId(destinationAccount.getId())
                 .amount(new Money(10000, Currency.USD))
                 .idempotencyKey("duplicate-key")
                 .createdAt(now)
@@ -143,10 +134,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         Transaction t2 = Transaction.builder()
                 .id(UUID.randomUUID())
-                .type(TransactionType.DEPOSIT)
                 .status(TransactionStatus.PENDING)
-                .billAccountId(billAccount.getId())
-                .counterpartAccountId(counterpartAccount.getId())
+                .sourceAccountId(sourceAccount.getId())
+                .destinationAccountId(destinationAccount.getId())
                 .amount(new Money(5000, Currency.USD))
                 .idempotencyKey("duplicate-key")
                 .createdAt(now)
@@ -165,10 +155,9 @@ class TransactionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         Transaction transaction = Transaction.builder()
                 .id(UUID.randomUUID())
-                .type(TransactionType.DEPOSIT)
                 .status(TransactionStatus.PENDING)
-                .billAccountId(billAccount.getId())
-                .counterpartAccountId(counterpartAccount.getId())
+                .sourceAccountId(sourceAccount.getId())
+                .destinationAccountId(destinationAccount.getId())
                 .amount(new Money(10000, Currency.USD))
                 .idempotencyKey("unique-key-001")
                 .createdAt(now)

@@ -29,8 +29,6 @@ class AccountRepositoryIntegrationTest extends BaseIntegrationTest {
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
                 .currency(Currency.USD)
-                .totalBalance(100000)
-                .availableBalance(100000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -53,8 +51,6 @@ class AccountRepositoryIntegrationTest extends BaseIntegrationTest {
                 .userId(UUID.randomUUID())
                 .type(AccountType.SYSTEM)
                 .currency(Currency.EUR)
-                .totalBalance(500000)
-                .availableBalance(500000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

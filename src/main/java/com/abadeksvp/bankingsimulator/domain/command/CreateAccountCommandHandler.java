@@ -42,8 +42,6 @@ public class CreateAccountCommandHandler extends AbstractCommandHandler<CreateAc
                 .userId(command.userId())
                 .type(command.accountType())
                 .currency(command.currency())
-                .totalBalance(command.initialDeposit())
-                .availableBalance(command.initialDeposit())
                 .overdraftEnabled(command.overdraftEnabled())
                 .createdAt(now)
                 .updatedAt(now)

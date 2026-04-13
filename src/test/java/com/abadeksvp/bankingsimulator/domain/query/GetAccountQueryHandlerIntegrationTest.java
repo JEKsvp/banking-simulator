@@ -37,8 +37,6 @@ class GetAccountQueryHandlerIntegrationTest extends BaseIntegrationTest {
                 .userId(UUID.randomUUID())
                 .type(AccountType.USER)
                 .currency(Currency.USD)
-                .totalBalance(250000)
-                .availableBalance(250000)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();

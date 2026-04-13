@@ -1,5 +1,7 @@
 package com.abadeksvp.bankingsimulator.domain.model;
 
+import com.abadeksvp.bankingsimulator.domain.error.CurrencyMismatchException;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -36,11 +38,15 @@ public class Account implements Persistable<UUID> {
     @Column("currency")
     private Currency currency;
 
+    @Getter(AccessLevel.NONE)
     @Column("total_balance")
-    private long totalBalance;
+    @Builder.Default
+    private long totalBalance = 0;
 
+    @Getter(AccessLevel.NONE)
     @Column("available_balance")
-    private long availableBalance;
+    @Builder.Default
+    private long availableBalance = 0;
 
     @Column("created_at")
     private Instant createdAt;
@@ -63,8 +69,53 @@ public class Account implements Persistable<UUID> {
                 createdAt, updatedAt, overdraftEnabled, false);
     }
 
+    public Money getTotalBalance() {
+        return new Money(totalBalance, currency);
+    }
+
+    public Money getAvailableBalance() {
+        return new Money(availableBalance, currency);
+    }
+
+    public boolean hasSufficientBalance(Money amount) {
+        validateCurrency(amount);
+        return overdraftEnabled || availableBalance >= amount.amount();
+    }
+
+    public void hold(Money amount, Instant now) {
+        validateCurrency(amount);
+        this.availableBalance -= amount.amount();
+        this.updatedAt = now;
+    }
+
+    public void debit(Money amount, Instant now) {
+        validateCurrency(amount);
+        this.totalBalance -= amount.amount();
+        this.updatedAt = now;
+    }
+
+    public void credit(Money amount, Instant now) {
+        validateCurrency(amount);
+        this.totalBalance += amount.amount();
+        this.availableBalance += amount.amount();
+        this.updatedAt = now;
+    }
+
+    public void releaseHold(Money amount, Instant now) {
+        validateCurrency(amount);
+        this.availableBalance += amount.amount();
+        this.updatedAt = now;
+    }
+
+    private void validateCurrency(Money amount) {
+        if (amount.currency() != this.currency) {
+            throw new CurrencyMismatchException(this.currency, amount.currency());
+        }
+    }
+
     @Override
     public boolean isNew() {
         return isNew;
     }
+
 }
